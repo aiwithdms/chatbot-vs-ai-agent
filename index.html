@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chatbot vs AI Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#07111F; --black:#030712; --cyan:#35D9FF; --ice:#9BEAFF; --gold:#D8B46A;
+  --white:#F8FAFC; --grey:#B6C2D2; --green:#4ADE80; --amber:#FBBF24; --red:#F87171;
+  --glass:rgba(15,30,50,.72); --line:rgba(155,234,255,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:Inter,Manrope,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--black); color:var(--white); font-size:clamp(17px,1.4vw,20px); line-height:1.55;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:-2;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(53,217,255,.14), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(216,180,106,.10), transparent 50%),
+    linear-gradient(160deg,var(--navy),var(--black));
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:64px 64px; opacity:.25; animation:drift 40s linear infinite;
+}
+@keyframes drift{to{background-position:64px 64px}}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--gold);color:#000;padding:8px 14px;z-index:99}
+.skip:focus{left:8px}
+
+header{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:12px clamp(14px,3vw,36px);background:rgba(3,7,18,.92);border-bottom:1px solid var(--line);
+}
+.brand{font-weight:700;font-size:15px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase}
+.brand span{color:var(--gold)}
+nav.progress{display:flex;gap:8px;flex:1;justify-content:center;flex-wrap:wrap}
+nav.progress button{
+  min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
+  font-weight:600;font-size:16px;color:var(--grey);
+}
+nav.progress button[aria-current="step"]{background:var(--cyan);color:#001018;border-color:var(--cyan);box-shadow:0 0 18px rgba(53,217,255,.45)}
+nav.progress button.visited{border-color:var(--cyan);color:var(--ice)}
+.btn{
+  min-height:48px;padding:12px 26px;border-radius:999px;border:1.5px solid var(--cyan);background:transparent;
+  color:var(--ice);font-weight:600;font-size:17px;transition:.2s;
+}
+.btn:hover{background:rgba(53,217,255,.14)}
+.btn.primary{background:var(--cyan);color:#001018}
+.btn.primary:hover{background:var(--ice)}
+.btn.gold{border-color:var(--gold);color:var(--gold)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{min-height:44px;padding:8px 18px;font-size:15px}
+
+main{max-width:1180px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(16px,3vw,36px) 120px}
+.scene{display:none;animation:enter .6s ease both}
+.scene.active{display:block}
+@keyframes enter{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:10px}
+h1{font-size:clamp(34px,6vw,64px);line-height:1.08;font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(28px,4vw,42px);line-height:1.15;font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
+h3{font-size:clamp(20px,2.2vw,28px);margin-bottom:8px;font-weight:700}
+.sub{color:var(--grey);margin:10px 0 24px;max-width:62ch}
+.cyan{color:var(--cyan)} .gold{color:var(--gold)}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:clamp(16px,2.4vw,28px);backdrop-filter:blur(8px)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stack>*+*{margin-top:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.label{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ice);font-weight:600}
+.badge{display:inline-block;font-size:14px;padding:4px 12px;border-radius:999px;border:1px solid var(--gold);color:var(--gold);font-weight:600}
+.sim{font-size:14px;color:var(--grey);font-style:italic}
+
+/* choices */
+.choices{display:grid;gap:12px;margin:18px 0}
+.choice{
+  text-align:left;padding:16px 20px;border-radius:14px;border:1.5px solid var(--line);background:rgba(7,17,31,.8);
+  min-height:56px;transition:.2s;
+}
+.choice:hover{border-color:var(--cyan)}
+.choice[aria-pressed="true"]{border-color:var(--gold);background:rgba(216,180,106,.12)}
+.choice.good{border-color:var(--green);background:rgba(74,222,128,.12)}
+.choice.bad{border-color:var(--amber);background:rgba(251,191,36,.10)}
+.feedback{border-left:4px solid var(--gold);padding:14px 18px;background:rgba(216,180,106,.08);border-radius:0 12px 12px 0;min-height:0}
+.feedback.good{border-color:var(--green);background:rgba(74,222,128,.08)}
+.feedback.bad{border-color:var(--amber);background:rgba(251,191,36,.08)}
+.feedback:empty{display:none}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:12px;min-height:240px}
+.bubble{max-width:88%;padding:14px 18px;border-radius:16px;animation:enter .4s ease both}
+.bubble.cust{align-self:flex-end;background:rgba(53,217,255,.16);border:1px solid var(--cyan)}
+.bubble.bot{align-self:flex-start;background:rgba(248,250,252,.08);border:1px solid var(--line)}
+.bubble small{display:block;color:var(--ice);font-size:14px;margin-bottom:4px;font-weight:600}
+.typing{align-self:flex-start;color:var(--grey);font-style:italic}
+
+/* lists */
+ul.clean{list-style:none}
+ul.clean li{padding:6px 0 6px 28px;position:relative}
+ul.clean li::before{content:"";position:absolute;left:4px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--cyan)}
+ul.clean.no li::before{background:var(--amber)}
+ul.clean.str li::before{background:var(--green)}
+
+/* workflow */
+.flow{display:flex;gap:0;align-items:stretch;flex-wrap:wrap}
+.stage{
+  flex:1 1 150px;min-height:92px;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:rgba(7,17,31,.85);
+  text-align:center;font-weight:600;font-size:16px;position:relative;transition:.35s;margin:6px 24px 6px 0;
+}
+.stage::after{
+  content:"";position:absolute;right:-24px;top:50%;width:24px;height:2px;background:var(--line);transition:.35s;
+}
+.stage:last-child{margin-right:0}
+.stage:last-child::after{display:none}
+.stage.on{border-color:var(--cyan);background:rgba(53,217,255,.15);box-shadow:0 0 22px rgba(53,217,255,.3)}
+.stage.on::after{background:var(--cyan)}
+.stage[aria-expanded="true"]{border-color:var(--gold)}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;background:rgba(0,0,0,.45);border:1px solid var(--line);padding:14px 18px;border-radius:12px;color:var(--ice);font-size:16px}
+
+/* agent */
+.agent-steps{list-style:none;counter-reset:s}
+.agent-steps li{
+  counter-increment:s;display:flex;gap:14px;align-items:center;padding:10px 14px;border-radius:12px;margin-bottom:8px;
+  border:1px solid var(--line);color:var(--grey);transition:.4s;
+}
+.agent-steps li::before{
+  content:counter(s);flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  border:1.5px solid var(--line);font-weight:700;font-size:15px;
+}
+.agent-steps li.done{color:var(--white);border-color:var(--cyan);background:rgba(53,217,255,.09)}
+.agent-steps li.done::before{background:var(--cyan);color:#001018;border-color:var(--cyan)}
+.agent-steps li.decision.done{border-color:var(--gold);background:rgba(216,180,106,.1)}
+.agent-steps li.decision.done::before{background:var(--gold)}
+.panel-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:17px}
+.panel-row:last-child{border:0}
+.panel-row b{color:var(--ice);font-weight:600}
+.panel-row span{text-align:right}
+.reveal{margin-top:18px}
+.reveal[hidden]{display:none}
+
+/* approval */
+.checkpoint{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0}
+.node{padding:12px 18px;border-radius:12px;border:1.5px solid var(--cyan);font-weight:600;text-align:center}
+.node.gate{border-color:var(--gold);color:var(--gold)}
+.track{flex:1 1 120px;height:6px;border-radius:3px;background:var(--line);position:relative;min-width:80px}
+.token{position:absolute;top:50%;left:0;width:20px;height:20px;border-radius:50%;background:var(--cyan);transform:translateY(-50%);box-shadow:0 0 14px var(--cyan);transition:left 1.4s ease}
+.token.arrived{left:calc(100% - 20px)}
+.states{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.state-chip{min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--line);background:transparent;font-size:16px;font-weight:600}
+.state-chip[aria-pressed="true"]{color:#001018}
+.state-chip[data-s="await"][aria-pressed="true"]{background:var(--gold);border-color:var(--gold)}
+.state-chip[data-s="ok"][aria-pressed="true"]{background:var(--green);border-color:var(--green)}
+.state-chip[data-s="no"][aria-pressed="true"]{background:var(--red);border-color:var(--red)}
+.state-chip[data-s="more"][aria-pressed="true"]{background:var(--amber);border-color:var(--amber)}
+.pillar h3{color:var(--gold);letter-spacing:.1em}
+
+/* table */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.tab{min-height:44px;padding:8px 20px;border-radius:999px;border:1.5px solid var(--line);background:transparent;font-weight:600;font-size:16px}
+.tab[aria-pressed="true"]{background:var(--cyan);color:#001018;border-color:var(--cyan)}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:17px}
+th,td{padding:14px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{color:var(--ice);font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+tbody th{color:var(--gold);width:16%}
+.dim{opacity:.38}
+.hl{background:rgba(53,217,255,.09)}
+.takeaway{font-size:clamp(20px,2.4vw,28px);font-weight:600;line-height:1.4;border-left:4px solid var(--gold);padding-left:20px;margin:24px 0}
+textarea{
+  width:100%;min-height:90px;border-radius:12px;border:1.5px solid var(--line);background:rgba(0,0,0,.4);
+  color:var(--white);padding:14px;font:inherit;resize:vertical
+}
+.closing{font-size:clamp(22px,3vw,34px);font-weight:800;color:var(--gold);letter-spacing:.02em;margin:28px 0 20px;line-height:1.25}
+
+/* footer nav */
+footer{
+  position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:12px clamp(14px,3vw,36px);background:rgba(3,7,18,.94);border-top:1px solid var(--line);
+}
+.bar{flex:1;height:5px;background:var(--line);border-radius:3px;max-width:340px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:width .5s}
+
+@media (max-width:900px){
+  .grid2,.grid3{grid-template-columns:1fr}
+  .stage{margin-right:0;margin-bottom:26px;flex-basis:100%}
+  .stage::after{right:50%;top:auto;bottom:-24px;width:2px;height:24px}
+  thead{display:none}
+  table,tbody,tr,th,td{display:block;width:100%}
+  tr{margin-bottom:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  tbody th{width:100%;background:rgba(216,180,106,.1)}
+  td::before{content:attr(data-label);display:block;font-size:14px;color:var(--ice);font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:.08em}
+  td.dim{display:none}
+  .brand{width:100%;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <div class="brand">Module 2 · <span>Chatbot vs AI Agent</span></div>
+  <nav class="progress" id="progress" aria-label="Scene progress"></nav>
+  <button class="btn small" id="replayTop" type="button">Replay</button>
+</header>
+
+<main id="main" tabindex="-1">
+
+<!-- START -->
+<section class="scene active" id="s0" data-title="Start" aria-labelledby="t0">
+  <p class="eyebrow">Corporate Learning · 15 Minutes</p>
+  <h1 id="t0">CHATBOT <span class="cyan">VS</span> AI AGENT</h1>
+  <p class="sub" style="font-size:1.2em">From Answering Questions to Progressing Business Tasks</p>
+  <div class="glass stack" style="max-width:760px">
+    <p>One fictional Indian e-commerce complaint. Three different systems. By the end you will see how a chatbot, rule-based automation and an AI agent differ in practice.</p>
+    <p class="sim">All companies, customers, orders and results in this experience are fictional and simulated. Nothing connects to a real system.</p>
+    <button class="btn primary" id="startBtn" type="button">Start Experience</button>
+  </div>
+</section>
+
+<!-- SCENE 1 -->
+<section class="scene" id="s1" data-title="The Customer Problem" aria-labelledby="t1">
+  <p class="eyebrow">Scene 1 of 7</p>
+  <h2 id="t1">ONE DAMAGED PRODUCT. THREE DIFFERENT APPROACHES.</h2>
+  <div class="grid2">
+    <div class="glass stack">
+      <span class="label">Customer message</span>
+      <div class="bubble cust" style="max-width:100%"><small>Customer · fictional</small>“I received my mixer grinder today, but the jar is cracked. I want a replacement or refund. My order number is IN-48291. What should I do?”</div>
+      <span class="label">Order summary <span class="badge">Fictional teaching data</span></span>
+      <div>
+        <div class="panel-row"><b>Product</b><span>Mixer grinder</span></div>
+        <div class="panel-row"><b>Order</b><span>IN-48291</span></div>
+        <div class="panel-row"><b>Status</b><span>Delivered</span></div>
+        <div class="panel-row"><b>Complaint</b><span>Damaged product</span></div>
+        <div class="panel-row"><b>Requested resolution</b><span>Replacement or refund</span></div>
+      </div>
+    </div>
+    <div class="glass">
+      <h3>What should the support system do first?</h3>
+      <div class="choices" id="c1" role="group" aria-label="Choose a first action"></div>
+      <div class="feedback" id="f1" aria-live="polite"></div>
+      <p class="takeaway" style="font-size:1.1em">Let's see how three different systems handle exactly the same problem.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 2 -->
+<section class="scene" id="s2" data-title="Chatbot" aria-labelledby="t2">
+  <p class="eyebrow">Scene 2 of 7 · Approach A</p>
+  <h2 id="t2">THE CHATBOT RESPONDS.</h2>
+  <div class="grid2">
+    <div class="glass stack">
+      <span class="label">Simulated support chat</span>
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn primary small" id="sendComplaint" type="button">Customer sends complaint</button>
+        <button class="btn small" id="askMore" type="button" disabled>Ask another question</button>
+        <button class="btn small" id="resetChat" type="button">Reset activity</button>
+      </div>
+    </div>
+    <div class="stack">
+      <button class="btn gold" id="showChatExp" type="button" aria-expanded="false" aria-controls="chatExp">Show the explanation</button>
+      <div class="glass reveal stack" id="chatExp" hidden>
+        <div><h3 class="cyan">What the chatbot does</h3>
+          <ul class="clean str"><li>Understands the customer's question.</li><li>Provides relevant information.</li><li>Explains the available process.</li></ul></div>
+        <div><h3 class="gold">What this example does not demonstrate</h3>
+          <ul class="clean no"><li>Retrieving order information.</li><li>Checking return eligibility.</li><li>Preparing a refund request.</li></ul></div>
+        <p class="sim">Important: this is a deliberately simple chatbot. Modern chatbots can also connect to tools and perform actions. A conversational interface alone does not decide whether a system is an agent.</p>
+      </div>
+      <button class="btn primary" data-go="3" type="button">Continue to the next approach</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 3 -->
+<section class="scene" id="s3" data-title="Rule-based automation" aria-labelledby="t3">
+  <p class="eyebrow">Scene 3 of 7 · Approach B</p>
+  <h2 id="t3">THE WORKFLOW FOLLOWS THE RULES.</h2>
+  <div class="glass stack">
+    <div class="row">
+      <button class="btn primary small" id="runFlow" type="button">Run the workflow</button>
+      <button class="btn small" id="resetFlow" type="button">Reset activity</button>
+      <span class="sim">Click any stage to see its purpose.</span>
+    </div>
+    <div class="flow" id="flow"></div>
+    <div class="feedback" id="stageInfo" aria-live="polite"></div>
+    <div class="code">IF complaint category = “Damaged product”<br>THEN create a support ticket and send the return instructions.</div>
+  </div>
+  <div class="grid2" style="margin-top:20px">
+    <div class="glass"><h3 class="cyan">Strengths</h3><ul class="clean str"><li>Predictable.</li><li>Consistent.</li><li>Useful for repetitive tasks.</li><li>Easy to audit when rules are properly maintained.</li></ul></div>
+    <div class="glass"><h3 class="gold">Limitations</h3><ul class="clean no"><li>Depends on configured rules.</li><li>May require additional rules for unexpected cases.</li><li>Does not automatically understand every new situation.</li></ul></div>
+  </div>
+  <p class="sub" style="margin-top:18px">Rule-based automation is often the best choice for simple, predictable processes.</p>
+</section>
+
+<!-- SCENE 4 -->
+<section class="scene" id="s4" data-title="AI Agent" aria-labelledby="t4">
+  <p class="eyebrow">Scene 4 of 7 · Approach C</p>
+  <h2 id="t4">THE AI AGENT WORKS TOWARDS A GOAL.</h2>
+  <div class="grid2">
+    <div class="glass">
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn primary small" id="runAgent" type="button">Run agent simulation</button>
+        <button class="btn small" id="resetAgent" type="button">Reset activity</button>
+      </div>
+      <ol class="agent-steps" id="agentSteps"></ol>
+    </div>
+    <div class="stack">
+      <div class="glass">
+        <span class="label">Agent activity panel <span class="badge">Simulated</span></span>
+        <div id="agentPanel" style="margin-top:8px"></div>
+      </div>
+      <div class="glass" id="agentReply" hidden>
+        <span class="label">Sample agent response (simulated)</span>
+        <p style="margin-top:8px">“I'm sorry the product arrived damaged. I have reviewed the available order information in this demonstration. A photograph of the damaged jar is still required under the example return process. I recommend requesting the photograph before proceeding with the replacement or refund assessment.”</p>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:20px">
+    <button class="btn gold" id="howAgent" type="button" aria-expanded="false" aria-controls="agentHow">Show How the Agent Works</button>
+  </div>
+  <div class="glass reveal" id="agentHow" hidden>
+    <div class="grid3" id="howGrid"></div>
+    <p class="sim" style="margin-top:14px">Not every AI agent can independently perform every step. Its capabilities depend on its tools, permissions, data and configuration.</p>
+  </div>
+</section>
+
+<!-- SCENE 5 -->
+<section class="scene" id="s5" data-title="Missing evidence" aria-labelledby="t5">
+  <p class="eyebrow">Scene 5 of 7</p>
+  <h2 id="t5">WHAT IF THE AGENT DOESN'T HAVE ENOUGH INFORMATION?</h2>
+  <div class="grid2">
+    <div class="glass stack">
+      <span class="label">New simulated update</span>
+      <div class="bubble bot" style="max-width:100%"><small>System note</small>“The order number is correct, but the customer has not uploaded a photograph of the damaged product.”</div>
+    </div>
+    <div class="glass">
+      <h3>What should the AI agent do next?</h3>
+      <div class="choices" id="c5" role="group" aria-label="Choose the agent's next action"></div>
+      <div class="feedback" id="f5" aria-live="polite"></div>
+      <button class="btn small" id="reset5" type="button" style="margin-top:12px">Reset activity</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 6 -->
+<section class="scene" id="s6" data-title="Human approval" aria-labelledby="t6">
+  <p class="eyebrow">Scene 6 of 7</p>
+  <h2 id="t6">WHO MAKES THE FINAL DECISION?</h2>
+  <div class="glass stack">
+    <p>“The agent has gathered the available information and recommends a refund. Company policy requires supervisor approval before the refund is issued.”</p>
+    <h3>Should the agent issue the refund automatically?</h3>
+    <div class="choices" id="c6" role="group" aria-label="Choose an approach"></div>
+    <div class="feedback" id="f6" aria-live="polite"></div>
+    <button class="btn small" id="reset6" type="button">Reset activity</button>
+  </div>
+  <div class="grid3" style="margin-top:20px">
+    <div class="glass pillar"><h3>VERIFY</h3><p>Check the relevant information.</p></div>
+    <div class="glass pillar"><h3>CONTROL</h3><p>Apply permissions and approval requirements.</p></div>
+    <div class="glass pillar"><h3>ACCOUNTABILITY</h3><p>Maintain appropriate records of decisions and actions.</p></div>
+  </div>
+  <div class="glass stack" style="margin-top:20px">
+    <span class="label">Approval checkpoint <span class="badge">Demonstration only</span></span>
+    <div class="checkpoint">
+      <div class="node">Agent recommendation</div>
+      <div class="track" aria-hidden="true"><div class="token" id="token"></div></div>
+      <div class="node gate">Human approval checkpoint</div>
+    </div>
+    <div class="row"><button class="btn primary small" id="sendRec" type="button">Send recommendation to checkpoint</button></div>
+    <div class="states" id="states" role="group" aria-label="Checkpoint state"></div>
+    <div class="feedback" id="stateInfo" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- SCENE 7 -->
+<section class="scene" id="s7" data-title="Final comparison" aria-labelledby="t7">
+  <p class="eyebrow">Scene 7 of 7</p>
+  <h2 id="t7">THREE APPROACHES. DIFFERENT CAPABILITIES.</h2>
+  <div class="tabs" id="tabs" role="group" aria-label="Highlight an approach"></div>
+  <div class="glass" style="padding:8px"><table id="cmp"></table></div>
+  <p class="takeaway">A chatbot helps you communicate. Automation follows configured rules. An AI agent can help progress a goal by using information and tools within defined boundaries.</p>
+  <div class="glass stack">
+    <h3>Which repetitive task in your own work could benefit from an AI agent?</h3>
+    <div class="row" id="ideas"></div>
+    <label for="myIdea" class="label">Your own example (stays in this browser only)</label>
+    <textarea id="myIdea" placeholder="Type your example here..."></textarea>
+  </div>
+  <p class="closing">UNDERSTAND THE TASK. CHOOSE THE RIGHT APPROACH. CONTROL THE OUTCOME.</p>
+  <div class="row">
+    <button class="btn primary" id="replayBtn" type="button">Replay Experience</button>
+    <button class="btn" id="reviewBtn" type="button">Review Comparison</button>
+    <button class="btn gold" id="finishBtn" type="button">Finish Module</button>
+  </div>
+  <div class="feedback good" id="finishMsg" aria-live="polite" style="margin-top:16px"></div>
+</section>
+
+</main>
+
+<footer>
+  <button class="btn" id="prev" type="button">← Previous</button>
+  <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+  <button class="btn primary" id="next" type="button">Next →</button>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var $ = function(id){return document.getElementById(id)};
+var scenes = Array.prototype.slice.call(document.querySelectorAll(".scene"));
+var cur = 0, visited = {0:true};
+var timers = [];
+function later(fn, ms){ var t=setTimeout(fn, reduce?0:ms); timers.push(t); return t; }
+function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+
+/* ---------- navigation ---------- */
+var prog = $("progress");
+scenes.forEach(function(s,i){
+  var b = document.createElement("button");
+  b.type="button"; b.textContent = i===0 ? "▶" : i;
+  b.setAttribute("aria-label", i===0 ? "Start screen" : "Scene "+i+": "+s.dataset.title);
+  b.addEventListener("click", function(){ go(i); });
+  prog.appendChild(b);
+});
+function go(i){
+  if(i<0||i>=scenes.length) return;
+  clearTimers();
+  scenes[cur].classList.remove("active");
+  cur = i; visited[i]=true;
+  scenes[cur].classList.add("active");
+  Array.prototype.forEach.call(prog.children, function(b,j){
+    b.classList.toggle("visited", !!visited[j]);
+    if(j===cur) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
+  });
+  $("prev").disabled = cur===0;
+  $("next").disabled = cur===scenes.length-1;
+  $("barFill").style.width = (cur/(scenes.length-1)*100)+"%";
+  window.scrollTo(0,0);
+  var h = scenes[cur].querySelector("h1,h2"); if(h){h.setAttribute("tabindex","-1"); h.focus({preventScroll:true});}
+}
+$("prev").onclick=function(){go(cur-1)};
+$("next").onclick=function(){go(cur+1)};
+$("startBtn").onclick=function(){go(1)};
+document.addEventListener("click",function(e){
+  var t=e.target.closest("[data-go]"); if(t) go(parseInt(t.dataset.go,10));
+});
+document.addEventListener("keydown",function(e){
+  var tag=(e.target.tagName||"").toLowerCase();
+  if(tag==="textarea"||tag==="input") return;
+  if(e.key==="ArrowRight") go(cur+1);
+  if(e.key==="ArrowLeft") go(cur-1);
+});
+
+/* ---------- reusable challenge ---------- */
+function challenge(boxId, fbId, opts, resetId, onResult){
+  var box=$(boxId), fb=$(fbId);
+  function render(){
+    box.innerHTML=""; fb.className="feedback"; fb.textContent="";
+    opts.forEach(function(o){
+      var b=document.createElement("button");
+      b.type="button"; b.className="choice"; b.textContent=o.text; b.setAttribute("aria-pressed","false");
+      b.addEventListener("click",function(){
+        Array.prototype.forEach.call(box.children,function(c){c.setAttribute("aria-pressed","false");c.classList.remove("good","bad")});
+        b.setAttribute("aria-pressed","true");
+        if(o.ok===true) b.classList.add("good"); else if(o.ok===false) b.classList.add("bad");
+        fb.className="feedback "+(o.ok===true?"good":(o.ok===false?"bad":""));
+        fb.textContent=o.fb;
+        if(onResult) onResult(o);
+      });
+      box.appendChild(b);
+    });
+  }
+  render();
+  if(resetId) $(resetId).addEventListener("click",render);
+  return render;
+}
+
+/* Scene 1 */
+challenge("c1","f1",[
+  {text:"Provide instructions.",ok:null,fb:"A reasonable start, and it is what a simple chatbot does. It tells the customer how to proceed, but it does not look at the order itself."},
+  {text:"Follow a predefined process.",ok:null,fb:"Also reasonable. Rule-based automation applies a fixed rule when a complaint matches a known category. It is dependable when the situation is predictable."},
+  {text:"Investigate the request and recommend the next step.",ok:null,fb:"This is what an AI agent aims to do: understand the goal, gather available information with authorised tools, and recommend what to do next. Each approach has a place, as the next scenes show."}
+]);
+
+/* Scene 2 chat */
+var chat=$("chat"), more=$("askMore"), sent=false, qIdx=0;
+var followups=[
+  {q:"Can you check whether my order is eligible for a refund?",a:"In this simple example I can only share general guidance. Please visit the Returns section of our website to see the refund policy."},
+  {q:"Can you raise the refund request for me?",a:"I'm not able to do that in this example. Please use the Returns section of our website to submit your request."},
+  {q:"What documents do I need?",a:"The Returns section lists the details needed for a request. Please check it when you submit."}
+];
+function addBubble(cls,who,text){
+  var d=document.createElement("div"); d.className="bubble "+cls;
+  var s=document.createElement("small"); s.textContent=who; d.appendChild(s);
+  d.appendChild(document.createTextNode(text)); chat.appendChild(d); return d;
+}
+function botReply(text){
+  var t=document.createElement("div"); t.className="typing"; t.textContent="Chatbot is typing…"; chat.appendChild(t);
+  later(function(){ chat.removeChild(t); addBubble("bot","Chatbot",text); more.disabled=false; },900);
+}
+function resetChat(){
+  clearTimers(); chat.innerHTML=""; sent=false; qIdx=0; more.disabled=true; $("sendComplaint").disabled=false;
+  $("chatExp").hidden=true; $("showChatExp").setAttribute("aria-expanded","false"); $("showChatExp").textContent="Show the explanation";
+}
+$("sendComplaint").onclick=function(){
+  if(sent) return; sent=true; this.disabled=true;
+  addBubble("cust","Customer (fictional)","I received my mixer grinder today, but the jar is cracked. I want a replacement or refund. My order number is IN-48291. What should I do?");
+  botReply("I'm sorry your product arrived damaged. Please visit the Returns section of our website to request a replacement or refund.");
+};
+more.onclick=function(){
+  var f=followups[qIdx%followups.length]; qIdx++; more.disabled=true;
+  addBubble("cust","Customer (fictional)",f.q); botReply(f.a);
+};
+$("resetChat").onclick=resetChat;
+$("showChatExp").onclick=function(){
+  var ex=$("chatExp"); ex.hidden=!ex.hidden; this.setAttribute("aria-expanded",String(!ex.hidden));
+  this.textContent= ex.hidden ? "Show the explanation" : "Hide the explanation";
+};
+
+/* Scene 3 workflow */
+var stages=[
+  {n:"Customer complaint",p:"The complaint arrives in the support queue."},
+  {n:"Identify complaint category",p:"The system matches the message to a known category, here “Damaged product”."},
+  {n:"Apply predefined rule",p:"A configured rule decides the action for that category. It does not weigh anything beyond what the rule says."},
+  {n:"Create support ticket",p:"A ticket is logged so the case can be tracked."},
+  {n:"Send standard instructions",p:"The customer receives the standard return instructions."}
+];
+var flow=$("flow"), info=$("stageInfo");
+stages.forEach(function(s,i){
+  var b=document.createElement("button"); b.type="button"; b.className="stage"; b.textContent=s.n;
+  b.setAttribute("aria-expanded","false"); b.dataset.i=i;
+  b.addEventListener("click",function(){
+    Array.prototype.forEach.call(flow.children,function(c){c.setAttribute("aria-expanded","false")});
+    b.setAttribute("aria-expanded","true"); info.className="feedback"; info.textContent=s.n+": "+s.p;
+  });
+  flow.appendChild(b);
+});
+function resetFlow(){
+  clearTimers();
+  Array.prototype.forEach.call(flow.children,function(c){c.classList.remove("on");c.setAttribute("aria-expanded","false")});
+  info.className="feedback"; info.textContent=""; $("runFlow").disabled=false;
+}
+$("resetFlow").onclick=resetFlow;
+$("runFlow").onclick=function(){
+  resetFlow(); this.disabled=true;
+  stages.forEach(function(s,i){
+    later(function(){
+      flow.children[i].classList.add("on");
+      info.className="feedback"; info.textContent=s.n+": "+s.p;
+      if(i===stages.length-1) $("runFlow").disabled=false;
+    }, i*900);
+  });
+};
+
+/* Scene 4 agent */
+var steps=[
+  ["Interpret the complaint.",false],
+  ["Identify the customer's requested outcome.",false],
+  ["Use an authorised order lookup tool to retrieve available order information.",false],
+  ["Check the applicable return policy.",false],
+  ["Identify any missing evidence or information.",true],
+  ["Recommend the next action.",true],
+  ["Prepare a return request or response for human review.",false]
+];
+var aList=$("agentSteps");
+var panelData=[
+  ["Goal","Resolve the customer's damaged-product complaint.",1],
+  ["Order lookup","Completed in simulation.",3],
+  ["Return policy","Consulted in simulation.",4],
+  ["Missing information","Product damage photograph.",5],
+  ["Recommendation","Request the required evidence.",6],
+  ["Final action","Await customer-service review.",7]
+];
+function renderAgent(n){
+  aList.innerHTML="";
+  steps.forEach(function(s,i){
+    var li=document.createElement("li"); li.textContent=s[0];
+    if(s[1]) li.className="decision";
+    if(i<n) li.classList.add("done");
+    aList.appendChild(li);
+  });
+  var p=$("agentPanel"); p.innerHTML="";
+  panelData.forEach(function(r){
+    var row=document.createElement("div"); row.className="panel-row";
+    var b=document.createElement("b"); b.textContent=r[0];
+    var sp=document.createElement("span"); sp.textContent = n>=r[2] ? r[1] : "Pending…";
+    row.appendChild(b); row.appendChild(sp); p.appendChild(row);
+  });
+  $("agentReply").hidden = n<7;
+}
+function resetAgent(){ clearTimers(); renderAgent(0); $("runAgent").disabled=false; }
+$("runAgent").onclick=function(){
+  resetAgent(); this.disabled=true;
+  steps.forEach(function(s,i){
+    later(function(){ renderAgent(i+1); if(i===steps.length-1) $("runAgent").disabled=false; }, (i+1)*950);
+  });
+};
+$("resetAgent").onclick=resetAgent;
+var how=[
+  ["Goal identification","The agent works out what the customer actually wants: a replacement or a refund for a damaged item."],
+  ["Context interpretation","It reads the message and the order details to understand the situation, not just the keywords."],
+  ["Tool use","It uses tools it has been authorised to use, such as an order lookup. Here this is simulated."],
+  ["Decision-making","It compares what it found with the return policy and notices that evidence is missing."],
+  ["Next-step selection","It chooses a sensible next step: ask for the photograph before assessing the refund or replacement."],
+  ["Human oversight","It prepares its work for a person to review. People stay in charge of consequential decisions."]
+];
+var hg=$("howGrid");
+how.forEach(function(h){
+  var d=document.createElement("div"); d.className="stack";
+  var t=document.createElement("h3"); t.className="cyan"; t.textContent=h[0];
+  var p=document.createElement("p"); p.textContent=h[1]; d.appendChild(t); d.appendChild(p); hg.appendChild(d);
+});
+$("howAgent").onclick=function(){
+  var r=$("agentHow"); r.hidden=!r.hidden; this.setAttribute("aria-expanded",String(!r.hidden));
+  this.textContent = r.hidden ? "Show How the Agent Works" : "Hide How the Agent Works";
+};
+renderAgent(0);
+
+/* Scene 5 */
+challenge("c5","f5",[
+  {text:"A. Issue the refund immediately.",ok:false,fb:"Not quite. Refunding without evidence assumes eligibility the policy has not confirmed, which could cause errors or misuse. Please try another option."},
+  {text:"B. Reject the complaint automatically.",ok:false,fb:"Not quite. Rejecting a complaint that may be genuine is unfair to the customer. Missing information is a reason to ask, not to refuse. Please try another option."},
+  {text:"C. Request the missing evidence and continue according to the applicable policy.",ok:true,fb:"Correct. A capable system should recognise missing information and seek what is needed. It should not invent evidence, assume eligibility or bypass the required process."}
+],"reset5");
+
+/* Scene 6 */
+challenge("c6","f6",[
+  {text:"Yes, issue it immediately.",ok:false,fb:"Not quite. Policy requires supervisor approval first. An agent acting outside its permissions would bypass an important control. Please try again."},
+  {text:"No, prepare the recommendation and request authorised approval.",ok:true,fb:"Follow the company's approval policy. The agent can prepare the case and recommend a decision, but the refund must not be issued until the required authorisation is obtained."},
+  {text:"Gather more information if a material uncertainty remains.",ok:true,fb:"Also sound. If a material uncertainty remains, gathering more information comes first. Once the case is clear, the agent still prepares the recommendation and waits for authorised approval before any refund."}
+],"reset6");
+var token=$("token"), sInfo=$("stateInfo"), sBox=$("states");
+var stateDefs=[
+  ["await","Awaiting review","The recommendation is waiting for the supervisor. No refund has been issued."],
+  ["ok","Approved","In this demonstration the supervisor approves. Only now could a refund proceed under the policy. Nothing real is processed."],
+  ["no","Rejected","The supervisor declines. The decision and reason would be recorded, and the customer informed."],
+  ["more","More information required","The supervisor asks for further details. The agent gathers them and resubmits."]
+];
+function setState(k){
+  Array.prototype.forEach.call(sBox.children,function(c){c.setAttribute("aria-pressed",String(c.dataset.s===k))});
+  var d=stateDefs.filter(function(x){return x[0]===k})[0];
+  sInfo.className="feedback"; sInfo.textContent=d[1]+": "+d[2];
+}
+stateDefs.forEach(function(d){
+  var b=document.createElement("button"); b.type="button"; b.className="state-chip"; b.dataset.s=d[0];
+  b.textContent=d[1]; b.setAttribute("aria-pressed","false"); b.disabled=true;
+  b.addEventListener("click",function(){setState(d[0])}); sBox.appendChild(b);
+});
+function resetCheckpoint(){
+  clearTimers();
+  token.classList.remove("arrived"); sInfo.className="feedback"; sInfo.textContent="";
+  Array.prototype.forEach.call(sBox.children,function(c){c.disabled=true;c.setAttribute("aria-pressed","false")});
+  $("sendRec").disabled=false;
+}
+$("reset6").addEventListener("click",resetCheckpoint);
+$("sendRec").onclick=function(){
+  this.disabled=true; token.classList.add("arrived");
+  later(function(){
+    Array.prototype.forEach.call(sBox.children,function(c){c.disabled=false});
+    setState("await");
+  },1500);
+};
+
+/* Scene 7 */
+var cols=["Chatbot","Rule-based automation","AI agent"];
+var rows=[
+  ["Primary purpose","Conversational assistance.","Execute predefined conditions and actions.","Progress a goal using information and tools."],
+  ["How it handles information","Interprets the question and replies with relevant information.","Reads fixed fields and categories.","Gathers and interprets available information from permitted sources."],
+  ["How it selects the next step","Based on the conversation.","By the configured rule.","By weighing the goal, findings and policy, within its design."],
+  ["Use of tools","Varies; some chatbots use tools.","Connected steps set up in advance.","Uses authorised tools as needed."],
+  ["Handling unexpected situations","May answer generally or hand over.","Needs a new rule, or falls back.","Can adapt to available information, within permissions."],
+  ["Human involvement","Customer reads and acts.","People configure and maintain the rules.","People set boundaries and approve consequential decisions."],
+  ["Best suited for","Answering questions and guiding people.","Simple, predictable, repeatable processes.","Multi-step tasks needing information and judgement, with controls."]
+];
+var tbl=$("cmp"), selCol=-1;
+function renderTable(){
+  var h="<thead><tr><th scope='col'>Aspect</th>";
+  cols.forEach(function(c,i){h+="<th scope='col' class='"+(selCol>=0?(i===selCol?"hl":"dim"):"")+"'>"+c+"</th>"});
+  h+="</tr></thead><tbody>";
+  rows.forEach(function(r){
+    h+="<tr><th scope='row'>"+r[0]+"</th>";
+    for(var i=0;i<3;i++) h+="<td data-label='"+cols[i]+"' class='"+(selCol>=0?(i===selCol?"hl":"dim"):"")+"'>"+r[i+1]+"</td>";
+    h+="</tr>";
+  });
+  tbl.innerHTML=h+"</tbody>";
+}
+var tabs=$("tabs");
+["All approaches"].concat(cols).forEach(function(c,i){
+  var b=document.createElement("button"); b.type="button"; b.className="tab"; b.textContent=c;
+  b.setAttribute("aria-pressed",String(i===0));
+  b.addEventListener("click",function(){
+    selCol=i-1;
+    Array.prototype.forEach.call(tabs.children,function(t,j){t.setAttribute("aria-pressed",String(j===i))});
+    renderTable();
+  });
+  tabs.appendChild(b);
+});
+renderTable();
+["Customer complaint classification","Invoice information checks","Internal IT support requests"].forEach(function(t){
+  var b=document.createElement("button"); b.type="button"; b.className="btn small"; b.textContent=t;
+  b.addEventListener("click",function(){ $("myIdea").value=t; });
+  $("ideas").appendChild(b);
+});
+$("replayBtn").onclick=$("replayTop").onclick=function(){
+  visited={0:true}; resetChat(); resetFlow(); resetAgent();
+  $("agentHow").hidden=true; $("howAgent").setAttribute("aria-expanded","false"); $("howAgent").textContent="Show How the Agent Works";
+  ["c1","c5","c6"].forEach(function(id){ var c=$(id); Array.prototype.forEach.call(c.children,function(b){b.setAttribute("aria-pressed","false");b.classList.remove("good","bad")}); });
+  ["f1","f5","f6"].forEach(function(id){ $(id).className="feedback"; $(id).textContent=""; });
+  resetCheckpoint(); $("myIdea").value=""; $("finishMsg").textContent="";
+  selCol=-1; renderTable();
+  Array.prototype.forEach.call(tabs.children,function(t,j){t.setAttribute("aria-pressed",String(j===0))});
+  go(0);
+};
+$("reviewBtn").onclick=function(){ $("cmp").scrollIntoView({behavior:reduce?"auto":"smooth",block:"center"}); };
+$("finishBtn").onclick=function(){
+  $("finishMsg").textContent="Module complete. Remember: understand the task, choose the right approach, control the outcome. You may replay the experience at any time.";
+};
+
+go(0);
+})();
+</script>
+</body>
+</html>
